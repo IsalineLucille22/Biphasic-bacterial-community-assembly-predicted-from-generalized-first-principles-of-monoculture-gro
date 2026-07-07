@@ -26,11 +26,11 @@ Parameters_Senka_mu_max = readtable(strcat('Data/','MergedData.xlsx'), 'Sheet', 
 %actual absolute abundance data, has quadriplicate values for each time point
 
 % Data_Evol = readtable(strcat(path, '/Liquid_Data/','abund_cfu_IG.xlsx'), 'Sheet', 2, 'Range','46:67', 'Format','auto');%1:22 without correction for 0. Data in soil extract from Phil and Clara's experiments
-% Data_Evol = readtable(strcat('Data/','S20_S21_abs_abund_cfu_Senka.xlsx'), 'Sheet', 7, 'Range','1:22', 'Format','auto'); %Senka's data
-Data_Evol = readtable(strcat('Data/','SSC21_genera_relative-abundances.xlsx'), 'Sheet', 4, 'Range','1:22', 'Format','auto'); %Bruna's data
+Data_Evol = readtable(strcat('Data/','S20_S21_abs_abund_cfu_Senka.xlsx'), 'Sheet', 7, 'Range','1:22', 'Format','auto'); %Senka's data
+% Data_Evol = readtable(strcat('Data/','SSC21_genera_relative-abundances.xlsx'), 'Sheet', 4, 'Range','1:22', 'Format','auto'); %Bruna's data
 mu_max_dist = table2array(Parameters_Senka_mu_max(:,7:8));
 S = height(Data_Evol);
-Time_step = [0 12 22 38 70 168 504];%Bruna %[0 1 3 7 10 21]*24;%Senka %[0 12 48 96 7*24 21*24];%Clara %Measured time step in hours
+Time_step = [0 1 3 7 10 21]*24;%Senka %[0 12 22 38 70 168 504];%Bruna %[0 12 48 96 7*24 21*24];%Clara %Measured time step in hours
 Time_step_BP = [0 6 12 24 36 48 72 168 240 504 1000 1500];%0:12:600;%0:50:1500; %Definition of a time step for the byproduct visualization
 name = string(table2array(Parameters_set(1:S,1)));
 name(end - 1:end) = [{'Ps1'}, {'Ps2'}];
@@ -121,7 +121,7 @@ for zz = 1:nb_rep_sim
     
     nb_replicates = 1;
     % mean_y_0([1 3 4 12]) = 0; %For Clara's data
-    mean_y_0(16) = 0; %No Microbacterium Bruna's data
+    % mean_y_0(16) = 0; %No Microbacterium Bruna's data
     for i = 1:nb_replicates
         %Initial concentrations using a normal distribution
         mat_y_0 = mean_y_0;
