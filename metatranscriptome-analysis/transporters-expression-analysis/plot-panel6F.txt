@@ -1,0 +1,44 @@
+%%plot figure 6E panel uptake gene expression types
+
+clear
+close all
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/2026-02')
+
+load('substrates.mat')
+load('transporters.mat');
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/count_data/br_sr_combined')
+
+load('all_uptake_results.mat');
+
+selected_panels=[25,8,78,5,12];
+
+figH=figure;
+
+T=tiledlayout(1,5)
+
+for z=1:length(selected_panels)
+
+jj=17; %only Pse-2
+
+nexttile(z)
+
+hlp_tag=transporters(ismember(transporters(:,2),all_results.Pse_2.individual_substrate_list{selected_panels(z)}));
+
+plot(time_categories,nanmean(all_results.(names{jj}).uptake{selected_panels(z)},1))
+
+hold on
+scatter(time_categories,all_results.(names{jj}).uptake{selected_panels(z)},'k.')
+grid on
+
+end
+
+fontsize(6,"points")
+T.Padding='compact';
+T.Title.String=correct_names{jj};
+T.XLabel.String="12h 22h 38h 70h 168h 3w";
+T.YLabel.String="log2 sum expression";
+T.Position=[0.1 0.1 0.5 0.3];
+
+saveas(figH,'panel-6F.pdf','pdf');

@@ -1,0 +1,189 @@
+%plot select KO maps as heat maps for the subset of 8 strains
+
+clear
+close all
+
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis')
+
+
+%read annotation table
+
+annotations=readtable('2026-03-20_MEER25-1_combined-annotations.csv');
+
+%read KO table
+
+KO_list={'ko00010','ko00020','ko00030','ko00040','ko00051','ko00052','ko00053','ko00620','ko00660','ko00061','ko00071','ko00230','ko00240','ko00250','ko00260','ko00270','ko00280','ko00290','ko00300','ko00310','ko00220','ko00330','ko00340','ko00350','ko00360','ko00380','ko00400','ko00520','ko00190','ko00910','ko00920'};
+
+
+%read counts table
+
+cd count_data/br_sr_combined
+
+counts_list=dir('*log2*');
+
+%only keep CAU, DEV, FLA, VAR, PSE1, PSE2, RAH, LYS
+
+to_keep=[3,8,9,11,16,17,18,21];
+
+counts_list=counts_list(to_keep,:);
+
+%make a combined heatmap
+
+all_results=struct();
+
+for jj=1:length(counts_list);
+
+counts=readtable(counts_list(jj).name);
+
+%genomes
+
+genomes=unique(counts.strain);
+
+genome_results=[];
+
+%time categories
+
+time_categories=[1:6];
+
+%split by the genomes
+
+tmp=annotations(contains(annotations.shortname,genomes),:);
+
+%suppress the double target column in the counts file (CAUS24_2_168_5), which is replaced
+%by CAUS24_2_168h_5
+
+counts.CAUS24_2_168_5=[];
+
+%suppress the order number column in the counts file (Var1)
+
+counts.Var1=[];
+
+for i=1:length(KO_list)
+
+%now find and sum these values within the selected genome (tmp)
+
+tmp_KO=tmp(contains(tmp.KEGG_Pathway,KO_list{i}),:);
+
+%then find this group in the counts
+
+tmp_counts=counts(ismember(counts.gene_id,tmp_KO.locus_tag),:);
+
+sample_times=unique(tmp_counts.Properties.VariableNames(contains(tmp_counts.Properties.VariableNames,'CAUS')))';
+sample_times=split(sample_times,'_');
+sample_times=unique(sample_times(:,3));
+
+%be careful, the order of sample times is 
+%'12h'
+%'168h'
+%'22h'
+%'38h'
+%'3w'
+%'70h'
+%but the order in displays should be [1,3,4,6,2,5];
+
+tmp_order=[1,3,4,6,2,5];
+
+tmp_results=[];
+
+for k=1:length(tmp_order)
+
+tmp_time=tmp_counts(:,contains(tmp_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+
+tmp_replicate=table2array(tmp_time);
+tmp_replicate(tmp_replicate==-1)=nan;
+
+%because this is log2, we first have to unlog then sum, then take again log2
+ 
+tmp_replicate=power(2,tmp_replicate);
+
+tmp_replicate=nansum(tmp_replicate);
+tmp_replicate=log2(tmp_replicate);
+
+tmp_results(:,k)=tmp_replicate; %columns as the time points, rows as the replicate values
+
+%replace again all -Inf as nan
+
+tmp_results(tmp_results==-Inf)=nan;
+
+end
+
+genome_results(i,:)=nanmean(tmp_results,1);
+
+end
+
+genome_name=replace(genomes,'-','_');
+
+all_results.(string(genome_name)).results=genome_results;
+
+end
+
+%make a plot
+
+names=fieldnames(all_results)
+
+close all
+figH=figure;
+
+counter=1;
+
+T=tiledlayout(numel(KO_list),numel(counts_list))
+
+for i=1:length(KO_list)
+
+for jj=1:length(names)
+
+
+nexttile(counter)
+
+for k=1:6 %time points
+
+face_alpha=all_results.(names{jj}).results(i,k);
+face_alpha(isnan(face_alpha))=2;
+face_alpha=sqrt(power(2,face_alpha))/120; %cap color intensity at log2=14
+face_alpha(face_alpha>1)=1;
+
+bar(time_categories(k),[2],'FaceColor','m','FaceAlpha',face_alpha);
+hold on
+
+end
+
+xticklabels('')
+yticklabels('')
+
+counter=counter+1;
+
+end
+
+end
+
+fontsize(6,"points")
+T.Padding='compact';
+T.TileSpacing='compact'
+
+cd ../../tiled-KO-group-plots/
+cd br_sr_combined/
+
+exportgraphics(figH,'select-KO-heatmap.pdf','ContentType','vector');
+
+%%make a separate plot for the colorscale
+
+exp_level=[7,8,9,10,11,12,13,14];
+
+close all
+
+figH=figure;
+
+subplot('position',[0.2 0.2 0.4 0.1]);
+
+for k=1:length(exp_level)
+
+face_alpha=exp_level(k);
+face_alpha=sqrt(power(2,face_alpha))/120; %cap color intensity at log2=14
+face_alpha(face_alpha>1)=1;
+
+bar(k,[2],'FaceColor','m','FaceAlpha',face_alpha);
+hold on
+
+end
+
+saveas(figH,'colorscale-for-heatmap.pdf','pdf');

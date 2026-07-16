@@ -1,0 +1,127 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww23300\viewh13920\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 README\
+\
+This folder has the following scripts (with a short description).\
+\
+1) Average_Mat.m\
+\
+Calculates the average of the same interaction matrices coming from different fitted sets. \
+\
+2) cliffsDelta.m\
+ \
+Calculates the Cliff\'92s Delta measure between observed and simulated final biomass\
+\
+3) CompSubcomProps.m\
+\
+Compares abundances of sub communities. Do this for observed and simulated sub-communities. Supplementary figure 8\
+\
+4) CorrectionT0.py\
+\
+Infer the missing time point 0 abundance using a linear fitting on the log abundance from time point 12hours (first measured abundance)\
+\
+5) CorrectionT0Monod.py\
+\
+Infer the missing time point 0 abundance assuming a Monod growth. First measured abundance at time point t = 12hours\
+\
+6) fun_CF_Death_Lyso.m\
+\
+Function to simulate the SMINT-PARINT model. Calculates the outcome of the combined matrices with SMINT-PARINT parameters.\
+\
+7) fun_MH_Candidate_Rob_Death.m\
+\
+SAO-algorithm to search parameter space iteratively. Compute the difference of energy between the current parameters state and the new parameters candidate. Keep the new candidate if 
+\f1 rand_val < ratio.  \
+
+\f0 Generate a new candidate in the space 
+\f1 S_consumer*S_consumed
+\f0 \
+ \
+8) fun_MH_Candidate_Rob.m\
+\
+SAO-algorithm to search parameter space iteratively. Compute the difference of energy between the current parameters state and the new parameters candidate. Keep the new candidate if 
+\f1 rand_val < ratio.  \
+
+\f0 Generate a new candidate in the space 
+\f1 S_consumer
+\f0 \
+\
+9) Increased_Mat.m\
+\
+Function used to increase the size of an existing matrix by the addition of a 0 row and/or column. For instance, when we have a SxS matrix and we want to initialize a S+1xS+1 matrix from this SxS matrix by adding a new row and column (n_row = index new row, n_col = index new column).\
+\
+10) MH_Algorithm_21SynCom_CF_Death_PARFOR_Lysobacter_Alone.m\
+\
+Main script to start the SAO-algorithm for parameter searches. It only fits parameters for Lysobacter keeping the interactions between the SynCom20 member fixed (data set 3 generated from the script MH_Algorithm_CF_Death_PARFOR.m, this index can be changed at line 65, or average over the entire fitted sets can be performed using the function Average_Mat.m).\
+The script processes in 4 SAO loops to fit Cross-feeding, Self-inhibition, Resource consumption and Predation. At the end of the last loop it starts again at the first loop until stop criteria is reached (Number of iterations p < N).\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 11) permanova_stats.m\
+\
+Calculates the PERMANOVA statistic (F) and R2. Values obtained in the figure 3 panel B.\
+\
+12) permanova1_exact.m\
+\
+Calculates a permutation test based on a PERMANOVA statistic. Values obtained in the figure 3 panel B.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+13) Permutation_Test.m\
+\
+\pard\pardeftab720\partightenfactor0
+\cf0 \expnd0\expndtw0\kerning0
+Performs a permutation test based on Cliff\'92s delta between two groups (for example, observed and simulated community measurements).\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 14) Permutt_cosin.m\
+\
+Tests the similarities and P-value for the comparison of the theta cosine trajectories of simulated versus empirical data (values reported in the Table 1, or Old_figures and not-used => Suppldata-MDS-plots)\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+15) Plot_syncom_from_multi_simulation_data_CF_SynCom21.m\
+\
+Plots byproduct formation by species and species biomass formation on byproducts in a consumer-producer matrix, as in main Figure 4A-F, Figure 5B-C. Compare SMINT-PARINT model to a model without SMINT-PARINT interaction using fitted parameter set for CF, death, primary resource consumption and predation. Data from 
+\f1\fs20 S20_S21_abs_abund_cfu_Senka.xlsx 
+\f0\fs24 excel file, sheet 7 SMINT_PARINT (soil microcosm no MT)\
+\
+16) Testing_competition_SnyCom21_individual_CF.m\
+\
+Plot the inividual obseverd biomass in soil using the Excel file 
+\f1\fs20 MergedData_copy.xlsx
+\f0\fs24 . First section used to generate Figure 2C. Last section compare observed community with 20 to observed community with 21 members Figure 4B.\
+\
+17) Transferred_Plot_SynCom.m\
+\
+Generates a soil microcosm community with 21 members with weekly transfer into a fresh environment. Simulations model using SMINT-PARINT interactions using fitted set is performed as well as simulation without SMINT-PARINT interactions (only resource competition). Supplementary Figure  9.\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 18) TrajectoryDist.m\
+\
+Calculates the theta cosine trajectory. Calls the function Permutt_cosin.m to perform a statistical test in order to assess trajectories similarities.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+19) Weighted_Struct.m\
+\
+Return a structure containing, for each fields, a weigthed average of the interaction matrices coming from different SAO-optimizations. \
+\
+20) Yield_per_Byproducts_Time.m. \
+\
+Calculates biomass formation from byproducts per strain and time point. Creation of the heatmap of byproduct exchanges. Figure 5E. Data coming from the 
+\f1\fs20 S20_S21_abs_abund_cfu_Senka.xlsx 
+\f0\fs24 excel file, sheet 7 SMINT_PARINT (soil microcosm no MT)\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\fs20 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+21) Yield_per_Predation_Time.m\
+\
+Calculates biomass formation from predation per strain and time point. Creation of the heatmap of predation. Figure 4G. Data coming from the 
+\f1\fs20 S20_S21_abs_abund_cfu_Senka.xlsx 
+\f0\fs24 excel file, sheet 7 SMINT_PARINT (soil microcosm no MT)}

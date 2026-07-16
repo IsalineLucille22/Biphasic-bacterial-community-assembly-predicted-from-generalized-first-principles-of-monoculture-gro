@@ -1,0 +1,120 @@
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/count_data/br_sr_combined')
+
+
+lysobacter=readtable('2026-03-20_Lys-log2-tpm.csv');
+
+% Pvalues, FDR, volcano plot
+g1=[20:24]; %tp 38 h
+g2=[15:19]; %tp 22 h
+
+
+RNA_seq=[lysobacter(:,g1) lysobacter(:,g2)];
+
+%keep only rows where there are fewer values= -1 than 2 (so we can keep triplicates)
+
+tmp=bsxfun(@eq, table2array(RNA_seq), -1);
+idx=find(sum(tmp,2)<3);
+RNA_seq=RNA_seq(idx,:);
+
+%replace -1 by nan
+
+RNA_seq=table2array(RNA_seq);
+RNA_seq(RNA_seq==-1)=nan;
+
+%fill missing values with the median for the mattest
+
+for i=1:length(RNA_seq)
+
+X(i,:)=fillmissing(RNA_seq(i,6:10),'movmedian',5);
+Y(i,:)=fillmissing(RNA_seq(i,1:5),'movmedian',5);
+
+end
+
+
+PValues=mattest (Y,X,'permute',1000); % Perform two-sample t-test to evaluate differential expression of genes from two experimental conditions
+
+FDR = mafdr(PValues, 'BHFDR', true); % Estimate positive false discovery rate for multiple hypothesis testing
+
+SigStructure=mavolcanoplot(Y,X,FDR,'LogTrans',false,'Foldchange',2, 'Labels',lysobacter.gene_id(idx));
+
+%bit more sensitive
+
+SigStructure=mavolcanoplot(Y,X,PValues,'LogTrans',false,'Foldchange',2, 'Labels',lysobacter.gene_id(idx));
+
+%from Volcanoplot can export lists and fold-changes
+
+%%repeat for timepoints 38 and 70
+
+% Pvalues, FDR, volcano plot
+g1=[20:24]; %tp 38 h
+g2=[30:34]; %tp 70 h
+
+
+RNA_seq=[lysobacter(:,g1) lysobacter(:,g2)];
+
+%keep only rows where there are fewer values= -1 than 2 (so we can keep triplicates)
+
+tmp=bsxfun(@eq, table2array(RNA_seq), -1);
+idx=find(sum(tmp,2)<3);
+RNA_seq=RNA_seq(idx,:);
+
+%replace -1 by nan
+
+RNA_seq=table2array(RNA_seq);
+RNA_seq(RNA_seq==-1)=nan;
+
+%fill missing values with the median for the mattest
+
+for i=1:length(RNA_seq)
+
+X(i,:)=fillmissing(RNA_seq(i,6:10),'movmedian',5);
+Y(i,:)=fillmissing(RNA_seq(i,1:5),'movmedian',5);
+
+end
+
+
+PValues=mattest (Y,X,'permute',1000); % Perform two-sample t-test to evaluate differential expression of genes from two experimental conditions
+
+FDR = mafdr(PValues, 'BHFDR', true); % Estimate positive false discovery rate for multiple hypothesis testing
+
+SigStructure=mavolcanoplot(Y,X,FDR,'LogTrans',false,'Foldchange',2, 'Labels',lysobacter.gene_id(idx));
+
+%from Volcanoplot can export lists and fold-changes
+
+%count how often one randomly finds 'protease' or 'peptidase'
+
+annotation=readtable('PROKKA_02162021.tsv','FileType','text');
+
+gene_score=[];
+
+for k=1:100
+
+temp=datasample(lysobacter.gene_id,70);
+gene_product=annotation.product(matches(annotation.locus_tag,temp)&matches(annotation.ftype,'CDS'));
+score_gene=gene_product(contains(gene_product,'peptidase') | contains(gene_product,'protease'));
+
+gene_score(k,:)=length(score_gene);
+
+end
+
+%mean is 2.28
+
+control={}; %paste list from 38hvs22h, FDR values
+
+score_control=control(contains(control,'peptidase') | contains(control,'protease')); %==6
+
+gene_score=[];
+
+for k=1:100
+
+temp=datasample(lysobacter.gene_id,70);
+gene_product=annotation.product(matches(annotation.locus_tag,temp)&matches(annotation.ftype,'CDS'));
+score_gene=gene_product(contains(gene_product,'Type IV') | contains(gene_product,'amidase'));
+
+gene_score(k,:)=length(score_gene);
+
+end
+
+mean=0.3300
+
+score_control=control(contains(control,'Type IV') | contains(control,'amidase')); %=4

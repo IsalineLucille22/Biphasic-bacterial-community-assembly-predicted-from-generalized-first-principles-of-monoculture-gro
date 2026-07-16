@@ -1,0 +1,34 @@
+%% predefine groups
+
+%type I moonotonous down
+%example Pseudomonas2 ko00020 (nr2)
+
+%type II monotonous up
+%example Pseudomonas2 ko00340 (nr 30)
+
+%type 3 peak at tp2
+%example Pseudomonas2 ko00410 (nr 35)
+
+%type 4 peak at tp3
+%example Pseudomonas2 ko00040 (nr 4)
+
+%type 5 broad peak at tp2-4
+%example Devosia (nr42) ko 00362
+
+%type 6 trough at tp 2
+example Pseudomonas 2 ko00230 (nr 19)
+
+%type 7 trough at tp3
+%example Caulobacter ko00630 (nr9)
+
+%type 8 trough at tp4
+%example Flavobacterium, ko00340 (nr 30)
+
+%type 9 plateaus at tp4-6
+%example Caulobacter ko00340 (nr 24)
+
+%type 10 deep trough between tp2-4
+%example Lysobacter ko00380 (nr 33)
+
+%type 11 peak at tp2 and again at tp5/6
+%example Pseudomonas2 ko00260 (nr 22)

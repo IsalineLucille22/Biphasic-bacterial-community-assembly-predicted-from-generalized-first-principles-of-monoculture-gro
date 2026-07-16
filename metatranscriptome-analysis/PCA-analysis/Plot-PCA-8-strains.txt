@@ -1,0 +1,44 @@
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/2026-04-PCA')
+
+PCA=readtable('2026-04-14_pca_8strains_all.xlsx');
+
+names=unique(PCA.shortname);
+
+C = orderedcolors("gem12");
+
+times=unique(PCA.time);
+
+close all
+
+figH=figure;
+
+T=tiledlayout(4,2);
+
+for i=1:length(names)
+
+nexttile(i)
+
+tmp=PCA(matches(PCA.shortname,names{i}),:);
+
+tmp=unique(tmp);
+
+for k=1:length(times)
+
+tmp2=tmp(tmp.time==times(k),:);
+point_color=C(k,:);
+
+scatter(tmp2.PC1, tmp2.PC2, "MarkerFaceColor",point_color);
+hold on
+end
+
+xlim([-50 100]);
+ylim([-40 60]);
+grid on
+title(names{i});
+
+end
+
+legend("Location","bestoutside")
+T.Position=[0.1 0.1 0.4 0.8];
+
+exportgraphics(figH,'PCA-8-strains.pdf','ContentType','vector');

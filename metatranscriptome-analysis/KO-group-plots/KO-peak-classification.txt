@@ -1,0 +1,519 @@
+%classify KO expression patterns for all strains
+%either according to self clustering or to ten defined 'types'
+
+
+clear
+close all
+
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis')
+
+
+%read annotation table
+
+annotations=readtable('2026-03-20_MEER25-1_combined-annotations.csv');
+
+KO_list={'ko00010','ko00020','ko00030','ko00040','ko00051','ko00052','ko00053','ko00620','ko00630','ko00640','ko00650','ko00660','ko00562','ko00061','ko00062','ko00071','ko00561','ko00564','ko00230','ko00240','ko00250','ko00260','ko00270','ko00280','ko00290','ko00300','ko00310','ko00220','ko00330','ko00340','ko00350','ko00360','ko00380','ko00400','ko00410','ko00430','ko00460','ko00470','ko00480','ko00520','ko00541','ko00362','ko00510','ko00513','ko00512','ko00515','ko00514','ko00601','ko00511','ko00540','ko00550','ko00552','ko00543','ko00730','ko00740','ko00750','ko00760','ko00770','ko00780','ko00785','ko00790','ko00670','ko00130','ko00900','ko01052','ko00522','ko01054','ko01053','ko00941','ko00943','ko00975','ko00362','ko00627','ko00623','ko00980','ko03060','ko02010','ko02060','ko03070','ko02020','ko02024','ko02030','ko02040','ko02025','ko00190','ko00195','ko00196','ko00710','ko00720','ko00680','ko00910','ko00920'};
+
+%read counts table
+
+cd count_data/br_sr_combined
+
+counts_list=dir('*log2*');
+
+all_results=struct();
+
+for jj=1:length(counts_list);
+
+counts=readtable(counts_list(jj).name);
+
+%genomes
+
+genomes=unique(counts.strain);
+
+genome_results=[];
+
+%time categories
+
+time_categories=[1:6];
+
+%split by the genomes
+
+tmp=annotations(contains(annotations.shortname,genomes),:);
+
+%suppress the double target column in the counts file (CAUS24_2_168_5), which is replaced
+%by CAUS24_2_168h_5
+
+counts.CAUS24_2_168_5=[];
+
+%suppress the order number column in the counts file (Var1)
+
+counts.Var1=[];
+
+%collect individual values
+
+for i=1:length(KO_list)
+
+tmp_KO=tmp(contains(tmp.KEGG_Pathway,KO_list{i}),:);
+
+%then find this group in the counts
+
+tmp_counts=counts(ismember(counts.gene_id,tmp_KO.locus_tag),:);
+
+sample_times=unique(tmp_counts.Properties.VariableNames(contains(tmp_counts.Properties.VariableNames,'CAUS')))';
+sample_times=split(sample_times,'_');
+sample_times=unique(sample_times(:,3));
+
+%be careful, the order of sample times is 
+%'12h'
+%'168h'
+%'22h'
+%'38h'
+%'3w'
+%'70h'
+%but the order in displays should be [1,3,4,6,2,5];
+
+tmp_order=[1,3,4,6,2,5];
+
+tmp_results=[];
+
+for k=1:length(tmp_order)
+
+tmp_time=tmp_counts(:,contains(tmp_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+
+tmp_replicate=table2array(tmp_time);
+tmp_replicate(tmp_replicate==-1)=nan;
+
+%because this is log2, we first have to unlog then sum, then take again log2
+ 
+tmp_replicate=power(2,tmp_replicate);
+
+tmp_replicate=nansum(tmp_replicate);
+tmp_replicate=log2(tmp_replicate);
+
+tmp_results(:,k)=tmp_replicate; %columns as the time points, rows as the replicate values
+
+%replace again all -Inf as nan
+
+tmp_results(tmp_results==-Inf)=nan;
+
+end
+
+genome_results{i}=tmp_results;
+
+end
+
+%make valid field_names
+
+genomes = matlab.lang.makeValidName(genomes);
+
+all_results.(string(genomes)).KO_expression=genome_results';
+
+end
+
+
+
+%%%%%%%%%%
+%calculate the Pearson and the Spearman coefficients for all individual data
+%and score the expression behaviour
+
+names=fieldnames(all_results)
+
+
+for jj=1:length(names)
+
+score=[];
+
+for i=1:length(all_results.(names{jj}).KO_expression)
+
+data=nanmean(all_results.(names{jj}).KO_expression{i}',2);
+
+[rho,pval]=corr(time_categories',data,'Type','Pearson');
+
+if rho<-0.5 & pval<0.05
+
+score(i) = 3; %monotonous down
+
+elseif rho>0.5 & pval<0.05
+
+score(i) = 4; %monotonous up
+
+elseif any(data(2:3)>data(1)+1.2) && any(data(2:3) > data(5:6)+1.2)
+
+score(i) = 1; %has a peak at tp2-3
+
+elseif any(data(2:3)+1.2<data(1)) && any(data(2:3)+1.2< data(5:6))
+
+score(i) = 2; %has a trough at tp2-3
+
+elseif any(data(4)>data(1:3)+1.2) && any(data(4) > data(5:6)+1.2)
+
+score(i) = 5; %has a peak at tp4
+
+elseif any(data(4)+1.2<data(1:3)) && any(data(4)+1.2< data(5:6))
+
+score(i) = 6; %has a trough at tp4
+
+else
+
+score(i) = 7;
+
+end
+
+end
+
+all_results.(names{jj}).scores=score;
+
+end
+
+cd ../../tiled-KO-group-plots/br_sr_combined/
+
+save 'all_KO_results.mat' all_results
+
+%%%try to correlate all profiles to each other across selected strains to find groups
+
+names=fieldnames(all_results)
+
+selected_names=[3,8,9,11,16,17,18,21];
+
+%3=Caulobacter
+%8=Devosia
+%9=Flavobacterium
+%11=Lysobacter
+%16=Pseudomonas1
+%17=Pseudomonas2
+%18=Rahnella
+%21=Variovorax
+
+%combine all data - not used
+
+all_data={};
+
+for jj=1:length(selected_names)
+
+tmp=all_results.(names{selected_names(jj)}).KO_expression;
+
+all_data=[all_data;tmp];
+
+end
+
+
+score_rho=[];
+score_pval=[];
+
+for jj=1:length(all_data)
+for kk=1:length(all_data)
+
+xdata=nanmean(all_data{jj}',2);
+ydata=nanmean(all_data{kk}',2);
+
+[rho,pval]=corr(xdata,ydata,'Type','Pearson');
+
+score_rho(jj,kk)=rho;
+score_pval(jj,kk)=pval;
+
+end
+end
+
+score_rho(score_rho<0)=nan;
+
+dissimilarityMatrix = 1 - score_rho;
+dissimilarityMatrix(dissimilarityMatrix<1e-6)=0;
+dissimilarityMatrix(isnan(dissimilarityMatrix))=0;
+
+%visualize clusters - not used
+
+ranksum005=bsxfun(@lt,score_pval,0.05);
+
+%do logic filtering but maintain the array size!
+
+ranksum_threshold = nan(size(score_rho));
+
+ranksum_threshold(ranksum005)=dissimilarityMatrix(ranksum005);
+
+%only keep the positive correlations
+
+%ranksum_threshold(ranksum_threshold<0)=nan;
+
+ranksum_threshold(isnan(ranksum_threshold))=0;
+
+Z = linkage(squareform(dissimilarityMatrix), 'complete');
+
+% Step 3: Determine how many clusters to form
+% Use 'cluster' function, set the distance threshold or the number of clusters
+% Here we use a threshold example:
+maxDistance = 0.995; % Set a threshold for cluster merging
+clusters = cluster(Z, 'cutoff', maxDistance, 'criterion', 'distance');
+
+% Step 4: Count the number of unique clusters
+numClusters = length(unique(clusters));
+
+% Step 5: (Optional) Visualize the dendrogram
+figure;
+dendrogram(Z);
+title('Hierarchical Clustering Dendrogram');
+xlabel('Sample Index');
+ylabel('Distance');
+
+
+%clustergram(ranksum_threshold); %not used
+
+
+%try to group with kmeans
+
+%[idx,C,sumd,D] = kmeans(ranksum_threshold,7,'MaxIter',10000,...
+    'Display','final','Replicates',10);
+
+KO_expression_groups=struct()
+
+for i=1:numClusters
+
+KO_expression_groups(i).group=find(clusters==i);
+
+end
+
+
+%correct for the number of the genome which it came from (i.e., multiple of 92)
+
+for i=1:numClusters
+
+tmp=KO_expression_groups(i).group;
+
+for j=1:length(tmp)
+
+if tmp(j,1)<=92
+
+KO_expression_groups(i).group(j,2)=1;
+KO_expression_groups(i).group(j,3)=tmp(j,1);
+
+elseif 92<tmp(j,1) & tmp(j,1)<=2*92
+
+KO_expression_groups(i).group(j,2)=2;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-1*92;
+
+elseif 2*92<tmp(j,1) & tmp(j,1)<=3*92
+
+KO_expression_groups(i).group(j,2)=3;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-2*92;
+
+elseif 3*92<tmp(j,1) & tmp(j,1)<=4*92
+
+KO_expression_groups(i).group(j,2)=4;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-3*92;
+
+elseif 4*92<tmp(j,1) & tmp(j,1)<=5*92
+
+KO_expression_groups(i).group(j,2)=5;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-4*92;
+
+elseif 5*92<tmp(j,1) & tmp(j,1)<=6*92
+
+KO_expression_groups(i).group(j,2)=6;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-5*92;
+
+elseif 6*92<tmp(j,1) & tmp(j,1)<=7*92
+
+KO_expression_groups(i).group(j,2)=7;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-6*92;
+
+else
+
+KO_expression_groups(i).group(j,2)=8;
+KO_expression_groups(i).group(j,3)=tmp(j,1)-7*92;
+
+end
+end
+end
+
+%% base on similarity to predefined expression types
+
+%type I moonotonous down
+%example Pseudomonas2 ko00020 (nr2)
+
+%type II monotonous up
+%example Pseudomonas2 ko00350 (nr 30)
+
+%type 3 peak at tp2
+%example Pseudomonas2 ko00410 (nr 35)
+
+%type 4 peak at tp3
+%example Pseudomonas2 ko00040 (nr 4)
+
+%type 5 broad peak at tp2-4
+%example Devosia (nr42) ko 00362
+
+%type 6 trough at tp 2
+example Pseudomonas 2 ko00230 (nr 19)
+
+%type 7 trough at tp3
+%example Caulobacter ko00630 (nr9)
+
+%type 8 trough at tp4
+%example Flavobacterium, ko00340 (nr 30)
+
+%type 9 plateaus at tp4-6
+%example Caulobacter ko00340 (nr 24)
+
+%type 10 deep trough between tp2-4
+%example Lysobacter ko00380 (nr 33)
+
+%type 11 peak at tp2 and again at tp5/6
+%example Pseudomonas2 ko00260 (nr 22)
+
+types=[];
+
+types(:,1)=nanmean(all_results.Pse_2.KO_expression{2}',2);
+types(:,2)=nanmean(all_results.Pse_2.KO_expression{30}',2);
+types(:,3)=nanmean(all_results.Pse_2.KO_expression{35}',2);
+types(:,4)=nanmean(all_results.Pse_2.KO_expression{4}',2);
+types(:,5)=nanmean(all_results.Dev.KO_expression{42}',2);
+types(:,6)=nanmean(all_results.Pse_2.KO_expression{19}',2);
+types(:,7)=nanmean(all_results.Cau.KO_expression{9}',2);
+types(:,8)=nanmean(all_results.Fla.KO_expression{30}',2);
+types(:,9)=nanmean(all_results.Cau.KO_expression{24}',2);
+types(:,10)=nanmean(all_results.Lys.KO_expression{33}',2);
+types(:,11)=nanmean(all_results.Pse_2.KO_expression{22}',2);
+
+names=fieldnames(all_results)
+
+selected_names=[3,8,9,11,16,17,18,21];
+
+
+score_rho=[];
+score_pval=[];
+
+for jj=1:length(selected_names)
+
+for kk=1:length(types)
+for zz=1:length(KO_list)
+
+xdata=nanmean(all_results.(names{selected_names(jj)}).KO_expression{zz}',2);
+ydata=types(:,kk);
+
+[rho,pval]=corr(xdata,ydata,'Type','Pearson');
+
+score_rho(zz,kk)=rho;
+score_pval(zz,kk)=pval;
+
+end
+end
+
+all_results.(names{selected_names(jj)}).rho=score_rho;
+all_results.(names{selected_names(jj)}).pval=score_pval;
+
+end
+
+%select only those, for example, with rho>0.82 = pval 0.05
+
+%threshold=0.82; 
+
+%for jj=1:length(selected_names)
+
+%for kk=1:length(types)
+
+%all_results.(names{selected_names(jj)}).KO_type{kk}=find(all_results.(names{selected_names(jj)}).rho(:,kk)>threshold);
+
+%end
+%end
+
+%find maxima per row and their positions. Keep only a single
+%value per type!
+
+for jj=1:length(selected_names)
+
+tmp=bsxfun(@eq,all_results.(names{selected_names(jj)}).rho,max(all_results.(names{selected_names(jj)}).rho,[],2));
+
+%do logic filtering but maintain the array size!
+
+ranksum_threshold = nan(size(all_results.(names{selected_names(jj)}).rho));
+
+ranksum_threshold(tmp)=all_results.(names{selected_names(jj)}).rho(tmp);
+
+for kk=1:length(types)
+
+all_results.(names{selected_names(jj)}).KO_type{kk}=find(ranksum_threshold(:,kk)>0);
+
+end
+end
+
+%%process for iPath
+
+%example highest expression at tp3
+%type 3
+
+%for this analysis, we need to correct back the names of Pse_1 and Pse_2
+
+corr_names=replace(names,'_','-');
+
+for jj=1:length(selected_names)
+
+for kk=1:length(types)
+
+KO_selection= all_results.(names{selected_names(jj)}).KO_type{kk};
+
+KO_selection=KO_list(KO_selection);
+
+selection=annotations.KEGG_ko(contains(annotations.KEGG_Pathway,KO_selection) & matches(annotations.shortname,corr_names{selected_names(jj)}));
+
+selection=erase(selection,'ko:');
+
+all_results.(names{selected_names(jj)}).KO_selection{kk}=selection;
+
+end
+end
+
+save 'all_KO_results.mat' all_results
+
+
+%make a barplot of the number of KOs in each type cluster
+
+close all
+
+figH=figure;
+
+T=tiledlayout(2,4)
+
+for jj=1:length(selected_names)
+
+nexttile(jj)
+
+for_bar_plot=[];
+
+for kk=1:length(types)
+
+tmp=length(all_results.(names{selected_names(jj)}).KO_type{kk});
+
+for_bar_plot=[for_bar_plot,tmp];
+
+end
+
+bar(1:length(types),for_bar_plot)
+ylim([0 50]);
+grid on
+title(corr_names{selected_names(jj)})
+
+end
+
+T.XLabel.String='KO expression type';
+T.YLabel.String='number of KOs per type';
+
+cd plots/
+
+saveas(figH,'selected-genomes-KO-expression-types.pdf','pdf');
+
+%%export as excel files
+
+ranges={'A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1'};
+
+for jj=1:length(selected_names)
+
+for kk=1:length(types)
+
+KO_selection= all_results.(names{selected_names(jj)}).KO_selection{kk};
+
+writecell(KO_selection,'KO-terms-per-strain.xlsx','Sheet',names{selected_names(jj)},'Range',ranges{kk});
+
+end
+
+end
+
+

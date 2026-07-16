@@ -1,0 +1,248 @@
+%plot the number of uptake systems with either a trough or a peak at tp2/3
+%as a function of the sorted substrates and categories
+%further plot the proportion of uptake systems in the different expression categories
+
+clear
+close all
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/2026-02')
+
+load('transporters.mat')
+load('substrates.mat')
+
+
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/tiled-uptake-all-substrates-per-genome/br_sr_combined')
+
+load('all_uptake_results.mat');
+
+names=fieldnames(all_results);
+
+% calculate the number of non-nan hits in the expression data
+
+for jj=1:length(names)
+
+for k=1:length(all_results.(names{jj}).uptake)
+
+temp=sum(double(isnan(all_results.(names{jj}).uptake{k})),'all');
+
+all_results.(names{jj}).nan_number(k)=temp;
+
+end
+
+end
+
+% calculate the number of annotated uptake systems for each genome
+
+uptake_systems=[];
+
+for jj=1:length(names)
+
+tmp=length(all_results.(names{jj}).uptake);
+
+uptake_systems(jj,1)=tmp;
+
+end
+
+% calculate the proportion of uptake systems with expression data in more than 50% of the
+% replicates and time points
+
+for jj=1:length(names)
+
+temp=all_results.(names{jj}).nan_number;
+
+temp(temp>14)=[];
+
+uptake_systems(jj,2)=length(temp);
+
+end
+
+%%
+%%other analysis and plots - heatmaps of peaks and troughs
+
+all_output=[];
+
+for jj=1:length(names)
+
+frame=nan(length(substrates),1);
+
+frame(find(ismember(substrates,all_results.(names{jj}).individual_substrate_list)))=all_results.(names{jj}).scores;
+
+%output=reshape(frame,[],18);
+%output(1:5,18)=[1:5];
+
+%output(isnan(output))=0;
+
+all_output(:,jj)=frame;
+
+end
+
+
+troughs=bsxfun(@eq,all_output,2);
+hlp=any(troughs==1,2);
+hlp_names=substrates(hlp);
+
+%find the corresponding substrate groups as well
+
+hlp_groups=substrates(matches(substrates(:,1),hlp_names),:);
+
+%sort according to the group
+
+%determine sorting order
+
+[B,I]=sortrows(hlp_groups,2);
+
+%find the relevant output 
+
+all_output_hlp=all_output(hlp,:);
+
+%resort the relevant output according to the new sorting order
+
+all_output_new=all_output_hlp(I,:);
+
+all_output_new(~(all_output_new==2))=0;
+
+close all
+
+figH=figure;
+
+h=heatmap(all_output_new)
+h.Position=[0.1 0.1 0.3 0.8];
+
+cd plots/
+
+saveas(figH,'heatmap-troughs-per-genome.pdf','pdf'); 
+
+%make a restricted version to have only those genomes with sufficient tmp coverage
+%meaning uptake_systems(:,2) is > 0.5*uptake_systems(:,1)
+
+C=orderedcolors('gem');
+C(1,:)=[1,1,1];
+
+C(2:3,:)=[];
+C(3:5,:)=[]; %to keep only white and blue
+
+selected_genomes=[3,7,8,9,10,11,13,16,17,18,20,21];
+
+all_output_restricted=all_output_new(:,selected_genomes);
+
+close all
+
+figH=figure;
+
+h=heatmap(all_output_restricted,Colormap=C)
+h.Position=[0.1 0.1 0.2 0.8];
+
+saveas(figH,'heatmap-troughs-per-genome-restricted.pdf','pdf'); 
+
+
+%%same for peaks
+
+peaks=bsxfun(@eq,all_output,1);
+hlp=any(peaks==1,2);
+hlp_names=substrates(hlp);
+
+%find the corresponding substrate groups as well
+
+hlp_groups=substrates(matches(substrates(:,1),hlp_names),:);
+
+%sort according to the group
+%determine sorting order
+
+[B,I]=sortrows(hlp_groups,2);
+
+%find the relevant output 
+
+all_output_hlp=all_output(hlp,:);
+
+%resort the relevant output according to the new sorting order
+
+all_output_new=all_output_hlp(I,:);
+
+all_output_new(~(all_output_new==1))=0;
+
+
+C=orderedcolors('gem');
+C(1,:)=[1,1,1];
+
+close all
+
+figH=figure;
+
+h=heatmap(all_output_new,Colormap=C)
+
+h.Position=[0.1 0.1 0.3 0.8];
+
+h.ColorbarVisible='off';
+
+saveas(figH,'heatmap-peaks-per-genome.pdf','pdf'); 
+
+%make a restricted version to have only those genomes with sufficient tmp coverage
+
+selected_genomes=[3,7,8,9,10,11,13,16,17,18,20,21];
+
+all_output_restricted=all_output_new(:,selected_genomes);
+
+close all
+
+figH=figure;
+
+h=heatmap(all_output_restricted, Colormap=C)
+h.Position=[0.1 0.1 0.2 0.5];
+
+saveas(figH,'heatmap-peaks-per-genome-restricted.pdf','pdf'); 
+
+
+%%collect all scores across all genomes and uptake systems
+
+all_output=[];
+
+for jj=1:length(names)
+
+frame=nan(length(substrates),1);
+
+frame(find(ismember(substrates,all_results.(names{jj}).individual_substrate_list)))=all_results.(names{jj}).scores;
+
+all_output(:,jj)=frame;
+
+end
+
+%sums per category
+
+sums5=sum(double(bsxfun(@eq,all_output,5)));
+sums4=sum(double(bsxfun(@eq,all_output,4)));
+sums3=sum(double(bsxfun(@eq,all_output,3)));
+sums2=sum(double(bsxfun(@eq,all_output,2)));
+sums1=sum(double(bsxfun(@eq,all_output,1)));
+totals=sum([sums5;sums4;sums3;sums2;sums1],1);
+
+
+close all
+
+figH=figure;
+
+T=tiledlayout(5,1)
+
+nexttile(1)
+bar(sums1./totals)
+ylim([0 0.3])
+grid on
+nexttile(2)
+bar(sums2./totals)
+ylim([0 0.3])
+grid on
+nexttile(3)
+bar(sums3./totals)
+ylim([0 0.3])
+grid on
+nexttile(4)
+bar(sums4./totals)
+ylim([0 0.6])
+grid on
+nexttile(5) %plot here the total annotated number of uptake systems per genome
+%and the number of those with interpretable TPM values (>50% of replicates and time points)
+bar(uptake_systems(:,1))
+hold on
+bar(uptake_systems(:,2))
+
+saveas(figH,'proportion-uptake-categories.pdf','pdf');

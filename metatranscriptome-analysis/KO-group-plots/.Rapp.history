@@ -1,0 +1,31 @@
+if (!requireNamespace("BiocManager", quietly = TRUE))#
+    install.packages("BiocManager")#
+BiocManager::install("iPath")
+library(iPath)
+citation("mclust")
+citation("iPaht")
+citation("iPath")
+library(devtools)#
+devtools::install_github('betsig/ipath')
+library(ipath)
+help
+help(ipath)
+??ipath
+ls("package:ipath")
+library(tidyverse)
+setwd("~/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/tiled-KO-group-plots/br_sr_combined")
+data <- read_excel("KO-terms-per-strain.xlsx", sheet = "Cau")
+install.packages("readxl")
+library(readxl)
+data <- read_excel("KO-terms-per-strain.xlsx", sheet = "Cau")
+head(data)
+data <- read_excel("KO-terms-per-strain.xlsx", sheet = "Cau", col_names=FALSE)
+head(data)
+type1 <- create_ipath_data(data$...1)
+type1 <- create_ipath_data(data,"..1")
+head(type1)
+make_ipath_ggplot(type1)
+make_svg_df(type1)
+make_svg_df_straight(type1)
+type1 <- create_ipath_data(data,data$...1)
+quit

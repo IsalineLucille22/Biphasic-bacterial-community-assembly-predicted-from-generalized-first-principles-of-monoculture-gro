@@ -1,0 +1,314 @@
+%plot select KO maps in tiled maps for all strains
+
+clear
+close all
+
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis')
+
+
+%read annotation table
+
+annotations=readtable('2026-03-20_MEER25-1_combined-annotations.csv');
+
+%read KO table
+
+%KO_list={'ko00010','ko00020','ko00030','ko00040','ko00051','ko00052','ko00053','ko00620','ko00630','ko00640','ko00650','ko00660','ko00562','ko00061','ko00062','ko00071','ko00561','ko00564','ko00230','ko00240','ko00250','ko00260','ko00270','ko00280','ko00290','ko00300','ko00310','ko00220','ko00330','ko00340','ko00350','ko00360','ko00380','ko00400','ko00410','ko00430','ko00460','ko00470','ko00480','ko00520','ko00541','ko00362'};
+
+%KO_list={'ko00510','ko00513','ko00512','ko00515','ko00514','ko00601','ko00511','ko00540','ko00550','ko00552','ko00543','ko00730','ko00740','ko00750','ko00760','ko00770','ko00780','ko00785','ko00790','ko00670','ko00130','ko00900','ko01052','ko00522','ko01054','ko01053','ko00941','ko00943','ko00975','ko00362','ko00627','ko00623','ko00980','ko03060','ko02010','ko02060','ko03070','ko02020','ko02024','ko02030','ko02040','ko02025'};
+
+%specific energy metabolism
+
+KO_list={'ko00190','ko00195','ko00196','ko00710','ko00720','ko00680','ko00910','ko00920'};
+
+%plot substrate utilization tiled maps for all strains
+
+plot_scales=[4,9;4,12;6,15;6,11;6,10;2,10;6,13;2,8;6,11;4,12;4,15;8,13;8,15;8,13;8,14;4,12;4,15;4,10;6,14;5,11;6,11;6,12;5,12;6,15;2,12];
+
+%read counts table
+
+cd count_data/br_sr_combined
+
+counts_list=dir('*log2*');
+
+for jj=1:length(counts_list);
+
+counts=readtable(counts_list(jj).name);
+
+%genomes
+
+genomes=unique(counts.strain);
+
+%time categories
+
+time_categories=[1:6];
+
+%split by the genomes
+
+tmp=annotations(contains(annotations.shortname,genomes),:);
+
+%suppress the double target column in the counts file (CAUS24_2_168_5), which is replaced
+%by CAUS24_2_168h_5
+
+counts.CAUS24_2_168_5=[];
+
+%suppress the order number column in the counts file (Var1)
+
+counts.Var1=[];
+
+%make a plot
+
+close all
+
+figH=figure;
+
+T=tiledlayout(7,6)
+
+for i=1:length(KO_list)
+
+nexttile(i)
+
+%now find and sum these values within the selected genome (tmp)
+
+tmp_KO=tmp(contains(tmp.KEGG_Pathway,KO_list{i}),:);
+
+%then find this group in the counts
+
+tmp_counts=counts(ismember(counts.gene_id,tmp_KO.locus_tag),:);
+
+sample_times=unique(tmp_counts.Properties.VariableNames(contains(tmp_counts.Properties.VariableNames,'CAUS')))';
+sample_times=split(sample_times,'_');
+sample_times=unique(sample_times(:,3));
+
+%be careful, the order of sample times is 
+%'12h'
+%'168h'
+%'22h'
+%'38h'
+%'3w'
+%'70h'
+%but the order in displays should be [1,3,4,6,2,5];
+
+tmp_order=[1,3,4,6,2,5];
+
+tmp_results=[];
+
+for k=1:length(tmp_order)
+
+tmp_time=tmp_counts(:,contains(tmp_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+
+tmp_replicate=table2array(tmp_time);
+tmp_replicate(tmp_replicate==-1)=nan;
+
+%because this is log2, we first have to unlog then sum, then take again log2
+ 
+tmp_replicate=power(2,tmp_replicate);
+
+tmp_replicate=nansum(tmp_replicate);
+tmp_replicate=log2(tmp_replicate);
+
+tmp_results(:,k)=tmp_replicate; %columns as the time points, rows as the replicate values
+
+%replace again all -Inf as nan
+
+tmp_results(tmp_results==-Inf)=nan;
+
+end
+
+plot(time_categories,nanmean(tmp_results,1))
+
+hold on
+scatter(time_categories,tmp_results,'k.')
+%ylim([plot_scales(i,1) plot_scales(i,2)])
+grid on
+
+title(KO_list{i})
+
+end
+
+fontsize(6,"points")
+T.Padding='compact';
+T.Title.String=genomes;
+T.XLabel.String="12h 22h 38h 70h 168h 3w";
+T.YLabel.String="log2 sum expression";
+
+%titlename=append(genomes,'-KO-groups.pdf');
+%titlename=append(genomes,'-KO-groups2.pdf');
+titlename=append(genomes,'-KO-energy.pdf');
+
+cd ../../tiled-KO-group-plots/br_sr_combined/plots/
+
+exportgraphics(figH,string(titlename),'ContentType','vector');
+
+cd ../../../count_data/br_sr_combined/
+
+end
+
+
+%read KO table
+
+KO_list={'ko00010','ko00020','ko00030','ko00040','ko00051','ko00052','ko00053','ko00620','ko00630','ko00640','ko00650','ko00660','ko00562','ko00061','ko00062','ko00071','ko00561','ko00564','ko00230','ko00240','ko00250','ko00260','ko00270','ko00280','ko00290','ko00300','ko00310','ko00220','ko00330','ko00340','ko00350','ko00360','ko00380','ko00400','ko00410','ko00430','ko00460','ko00470','ko00480','ko00520','ko00541','ko00362','ko00510','ko00513','ko00512','ko00515','ko00514','ko00601','ko00511','ko00540','ko00550','ko00552','ko00543','ko00730','ko00740','ko00750','ko00760','ko00770','ko00780','ko00785','ko00790','ko00670','ko00130','ko00900','ko01052','ko00522','ko01054','ko01053','ko00941','ko00943','ko00975','ko00362','ko00627','ko00623','ko00980','ko03060','ko02010','ko02060','ko03070','ko02020','ko02024','ko02030','ko02040','ko02025','ko00190','ko00195','ko00196','ko00710','ko00720','ko00680','ko00910','ko00920'};
+
+
+%read counts table
+
+counts_list=dir('*log2*');
+
+all_results=struct();
+
+for jj=1:length(counts_list);
+
+counts=readtable(counts_list(jj).name);
+
+%genomes
+
+genomes=unique(counts.strain);
+
+genome_results={};
+
+%time categories
+
+time_categories=[1:6];
+
+%split by the genomes
+
+tmp=annotations(contains(annotations.shortname,genomes),:);
+
+%suppress the double target column in the counts file (CAUS24_2_168_5), which is replaced
+%by CAUS24_2_168h_5
+
+counts.CAUS24_2_168_5=[];
+
+%suppress the order number column in the counts file (Var1)
+
+counts.Var1=[];
+
+%now find and sum these values within the selected genome (tmp)
+
+for i=1:length(KO_list)
+
+tmp_KO=tmp(contains(tmp.KEGG_Pathway,KO_list{i}),:);
+
+%then find this group in the counts
+
+tmp_counts=counts(ismember(counts.gene_id,tmp_KO.locus_tag),:);
+
+sample_times=unique(tmp_counts.Properties.VariableNames(contains(tmp_counts.Properties.VariableNames,'CAUS')))';
+sample_times=split(sample_times,'_');
+sample_times=unique(sample_times(:,3));
+
+%be careful, the order of sample times is 
+%'12h'
+%'168h'
+%'22h'
+%'38h'
+%'3w'
+%'70h'
+%but the order in displays should be [1,3,4,6,2,5];
+
+tmp_order=[1,3,4,6,2,5];
+
+tmp_results=[];
+
+for k=1:length(tmp_order)
+
+tmp_time=tmp_counts(:,contains(tmp_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+
+tmp_replicate=table2array(tmp_time);
+tmp_replicate(tmp_replicate==-1)=nan;
+
+%because this is log2, we first have to unlog then sum, then take again log2
+ 
+tmp_replicate=power(2,tmp_replicate);
+
+tmp_replicate=nansum(tmp_replicate);
+tmp_replicate=log2(tmp_replicate);
+
+tmp_results(:,k)=tmp_replicate; %columns as the time points, rows as the replicate values
+
+%replace again all -Inf as nan
+
+tmp_results(tmp_results==-Inf)=nan;
+
+end
+
+genome_results{i}=tmp_results;
+
+end
+
+%make valid field_names
+
+genomes = matlab.lang.makeValidName(genomes);
+
+all_results.(string(genomes)).KO_expression=genome_results';
+
+end
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/tiled-KO-group-plots/br_sr_combined')
+
+save all_results_KO_table.mat all_results 
+
+%take the means for every time point and genome
+
+names=fieldnames(all_results);
+
+Total_KO_score={};
+
+for jj=1:length(names)
+
+KO_score=[];
+
+for i=1:length(all_results.(names{jj}).KO_expression)
+
+data=nanmean(all_results.(names{jj}).KO_expression{i}',2);
+
+KO_score(i,:)=data;
+
+end
+
+Total_KO_score{jj}=KO_score;
+
+end
+
+
+%example PCAs on each time point
+%plot the mean KO similarities per time point and genome by PCA
+
+cd plots
+
+C=distinguishable_colors(21)
+
+close all
+
+figH=figure;
+
+T=tiledlayout(2,3)
+
+for k=1:length(time_categories)
+
+nexttile(k)
+
+for jj=1:length(names)
+
+Time(:,jj)=Total_KO_score{jj}(:,k);
+
+end
+
+[coeff,score,latent,tsquared,explained,mu] = pca(Time);
+
+scatter(coeff(:,1),coeff(:,2),200,C,'.')
+grid on
+title(append('time-',string(time_categories(k))))
+
+end
+
+exportgraphics(figH,'PCA-KO-group-expression-per-genome.pdf','ContentType','vector');
+
+%for the color scale
+
+close all
+
+figH=figure;
+
+scatter(ones(21,1),1:21,200,C,'filled')
+
+saveas(figH,'colorscale.pdf','pdf');

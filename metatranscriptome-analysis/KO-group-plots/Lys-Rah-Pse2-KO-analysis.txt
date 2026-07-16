@@ -1,0 +1,152 @@
+%plot select KO maps in tiled maps for Lysobacter-Rahnella-Pseudomonas2
+%panel Fig6F
+
+%%%make a comparative plot for Lysobacter, Rahnella and Pseudomonas 2
+%of the KO categories bacterial secretion systems (KO03070) and two-component systems (KO02020)
+
+clear
+close all
+
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis')
+
+%read annotation table
+
+annotations=readtable('2026-03-20_MEER25-1_combined-annotations.csv');
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/count_data/br_sr_combined')
+
+
+Lys_counts=readtable('2026-03-20_Lys-log2-tpm.csv');
+Rah_counts=readtable('2026-03-20_Rah-log2-tpm.csv');
+Pse2_counts=readtable('2026-03-20_Pse-2-log2-tpm.csv');
+
+%suppress the double target column in the counts file (CAUS_2_br_3w_2), which is replaced
+%by CAUS_2_br_3w_2a
+
+Lys_counts.CAUS24_2_168_5=[];
+Rah_counts.CAUS24_2_168_5=[];
+Pse2_counts.CAUS24_2_168_5=[];
+
+sample_times=unique(Lys_counts.Properties.VariableNames(contains(Lys_counts.Properties.VariableNames,'CAUS')))';
+sample_times=split(sample_times,'_');
+sample_times=unique(sample_times(:,3));
+
+
+Lys_annotation=annotations(matches(annotations.shortname,'Lys'),:);
+Rah_annotation=annotations(matches(annotations.shortname,'Rah'),:);
+Pse2_annotation=annotations(matches(annotations.shortname,'Pse-2'),:);
+
+
+times=[12,22,38,70,168,21*24];
+tmp_order=[1,3,4,6,2,5];
+
+
+close all
+
+figH=figure
+
+%T=tiledlayout(2,2)
+
+%KO={'ko03070','ko02020','ko02010'};
+%KO_titles={'secretion system','two-component','ABC transport'};
+
+%KO={'ko03070','ko02020','ko02010','ko02030'};
+%KO_titles={'secretion system','two-component','ABC transport','Chemotaxis'};
+
+
+KO={'ko03070','ko02020','ko02030'};
+KO_titles={'secretion system','two-component','Chemotaxis'};
+
+
+T=tiledlayout(1,3)
+
+for i=1:length(KO)
+
+nexttile(i)
+
+sub_Lys=Lys_annotation(contains(Lys_annotation.KEGG_Pathway,KO{i}),:);
+sub_Rah=Rah_annotation(contains(Rah_annotation.KEGG_Pathway,KO{i}),:);
+sub_Pse2=Pse2_annotation(contains(Pse2_annotation.KEGG_Pathway,KO{i}),:);
+
+
+%now find and sum these values within the selected genome (Lys_counts)
+
+sub_Lys_counts=Lys_counts(ismember(Lys_counts.gene_id,sub_Lys.locus_tag),:);
+sub_Rah_counts=Rah_counts(ismember(Rah_counts.gene_id,sub_Rah.locus_tag),:);
+sub_Pse2_counts=Pse2_counts(ismember(Pse2_counts.gene_id,sub_Pse2.locus_tag),:);
+
+tmp_Lys_means=[];
+tmp_Rah_means=[];
+tmp_Pse2_means=[];
+
+for k=1:length(tmp_order)
+
+tmp_time_L=sub_Lys_counts(:,contains(sub_Lys_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+tmp_time_R=sub_Rah_counts(:,contains(sub_Rah_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+tmp_time_P=sub_Pse2_counts(:,contains(sub_Pse2_counts.Properties.VariableNames,sample_times(tmp_order(k))));
+
+tmp_replicate_L=table2array(tmp_time_L);
+tmp_replicate_L(tmp_replicate_L==-1)=nan;
+
+tmp_replicate_R=table2array(tmp_time_R);
+tmp_replicate_R(tmp_replicate_R==-1)=nan;
+
+tmp_replicate_P=table2array(tmp_time_P);
+tmp_replicate_P(tmp_replicate_P==-1)=nan;
+
+%because this is log2, we first have to unlog then sum, then take again log2
+ 
+tmp_replicate_L=power(2,tmp_replicate_L);
+tmp_replicate_R=power(2,tmp_replicate_R);
+tmp_replicate_P=power(2,tmp_replicate_P);
+
+tmp_replicate_L=nansum(tmp_replicate_L,1);
+tmp_replicate_R=nansum(tmp_replicate_R,1);
+tmp_replicate_P=nansum(tmp_replicate_P,1);
+
+tmp_replicate_L=log2(tmp_replicate_L);
+tmp_replicate_R=log2(tmp_replicate_R);
+tmp_replicate_P=log2(tmp_replicate_P);
+
+tmp_Lys_means(:,k)=tmp_replicate_L; %columns as the time points, rows as the replicate values
+tmp_Rah_means(:,k)=tmp_replicate_R;
+tmp_Pse2_means(:,k)=tmp_replicate_P;
+
+%replace again all -Inf as nan
+
+tmp_Lys_means(tmp_Lys_means==-Inf)=nan;
+tmp_Rah_means(tmp_Rah_means==-Inf)=nan;
+tmp_Pse2_means(tmp_Pse2_means==-Inf)=nan;
+
+end
+
+plot([1:6],nanmean(tmp_Lys_means, 1));%(times,nanmean(tmp_Lys_means,1))
+hold on
+plot([1:6],nanmean(tmp_Rah_means, 1));%(times,nanmean(tmp_Rah_means,1))
+plot([1:6],nanmean(tmp_Pse2_means, 1));%(times,nanmean(tmp_Pse2_means,1))
+
+hold on
+scatter([1:6],tmp_Lys_means, 100,'b.');%(times,tmp_Lys_means,100,'b.')
+scatter([1:6],tmp_Rah_means, 100,'g.');%(times,tmp_Rah_means,100,'g.')
+scatter([1:6],tmp_Pse2_means, 100,'r.');%(times,tmp_Pse2_means,100,'r.')
+
+ylim([7 17])
+xlim([0 7]);
+grid on
+title(KO_titles{i})
+%yticklabels({})
+%xticklabels({})
+
+end
+
+T.Position=[0.1 0.1 0.6 0.3];;
+T.YLabel.String='log2 TPM';
+T.XLabel.String='time (h)';
+fontsize(8,"points")
+T.Padding='compact';
+
+titlename='Lys-Rah-Pse2-KO-select3.pdf';
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/tiled-KO-group-plots/br_sr_combined/plots')
+
+exportgraphics(figH,string(titlename),'ContentType','vector');

@@ -1,0 +1,90 @@
+clear
+
+close all
+
+cd( '/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/')
+
+sheets={'38vs22h-FDR','38vs70h-FDR'};
+
+typeiv=nan(2,25);
+typevi=nan(2,25);
+protease=nan(2,25);
+mobility=nan(2,25);
+
+for i=1:length(sheets)
+
+lysobacter=readtable('Lysobacter-DE-tp22-38-70.xlsx','sheet',sheets{i});
+
+typeiv(i,1:length(lysobacter.fold_change(contains(lysobacter.Annotation,'Type IV'))))=lysobacter.fold_change(contains(lysobacter.Annotation,'Type IV'));
+typevi(i,1:length(lysobacter.fold_change(contains(lysobacter.Annotation,'type VI'))))=lysobacter.fold_change(contains(lysobacter.Annotation,'type VI'));
+protease(i,1:length(lysobacter.fold_change(contains(lysobacter.Annotation,'peptidase')| contains(lysobacter.Annotation,'protease'))))=lysobacter.fold_change(contains(lysobacter.Annotation,'peptidase') | contains(lysobacter.Annotation,'protease'));
+mobility(i,1:length(lysobacter.fold_change(contains(lysobacter.Annotation,'mobility')))) = lysobacter.fold_change(contains(lysobacter.Annotation,'mobility'));
+
+end
+
+%make a bar plot with the individual values as dots
+
+close all
+
+figH=figure;
+
+t=tiledlayout(1,4)
+
+nexttile(1)
+
+for i=1:length(sheets)
+
+bar(i,nanmean(typeiv(i,:),2))
+hold on
+scatter(i,typeiv(i,:),'ko','filled');
+end
+grid on
+title('Type IV');
+
+nexttile(2)
+
+for i=1:length(sheets)
+
+bar(i,nanmean(typevi(i,:),2))
+hold on
+scatter(i,typevi(i,:),'ko','filled');
+end
+grid on
+
+title('Type VI');
+
+nexttile(3)
+
+for i=1:length(sheets)
+
+bar(i,nanmean(protease(i,:),2))
+hold on
+scatter(i,protease(i,:),'ko','filled');
+end
+grid on
+
+title('Protease');
+
+nexttile(4)
+
+for i=1:length(sheets)
+
+bar(i,nanmean(mobility(i,:),2))
+hold on
+scatter(i,mobility(i,:),'ko','filled');
+end
+grid on
+ylim([0 4]);
+
+title('Twitching')
+
+t.Position=[0.1 0.1 0.6 0.3];
+t.YLabel.String='Fold change';
+fontsize(8,"points")
+
+titlename='Lys-DE-predation-groups.pdf';
+
+cd('/Users/jvanderm/Library/CloudStorage/OneDrive-UniversitédeLausanne/SynCom model paper/DE_analysis/tiled-KO-group-plots/br_sr_combined/plots')
+
+exportgraphics(figH,string(titlename),'ContentType','vector');
+
